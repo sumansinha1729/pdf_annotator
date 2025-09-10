@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { v4 as uuidv4 } from "uuid";
 import Pdf from "../models/Pdf.js";
 import Highlight from "../models/Highlight.js";
+
 
 const UPLOAD_DIR = path.resolve("uploads/pdfs");
 
@@ -10,13 +10,10 @@ export async function uploadPdf(req, res) {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    const id = uuidv4();
-    const storedName = `${id}.pdf`;
+    // Use the UUID created by the router's multer filename() callback
+    const id = req.generatedUuid;
     const originalName = req.file.originalname;
-
-    // Move/rename the uploaded temp file to final name (multer placed it already in destination with random name).
-    // If using diskStorage with filename: we won't need rename; but let's ensure.
-    // (We set filename in multer config, so this is just metadata save.)
+    const storedName = req.file.filename; // "<uuid>.pdf" created by multer
 
     const pdf = await Pdf.create({
       uuid: id,
@@ -36,6 +33,7 @@ export async function uploadPdf(req, res) {
     res.status(500).json({ error: "upload failed" });
   }
 }
+
 
 export async function listPdfs(req, res) {
   const items = await Pdf.find({ user: req.userId }).sort({ createdAt: -1 });

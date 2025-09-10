@@ -1,23 +1,36 @@
+// src/routes/pdf.routes.js
 import { Router } from "express";
 import multer from "multer";
 import path from "node:path";
+import { v4 as uuidv4 } from "uuid";
 import { authRequired } from "../middleware/auth.js";
-import { uploadPdf, listPdfs, renamePdf, deletePdf, getPdfMeta } from "../controllers/pdf.controller.js";
+import {
+  uploadPdf,
+  listPdfs,
+  renamePdf,
+  deletePdf,
+  getPdfMeta
+} from "../controllers/pdf.controller.js";
 
-// Configure disk storage so we control name/location
+const uploadDir = path.resolve("uploads/pdfs");
+
+// Configure disk storage to name files <uuid>.pdf
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.resolve("uploads/pdfs")),
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
-    // Temp name; controller uses UUID for metadata/fileUrl; the stored file name we want is <uuid>.pdf
-    // Easiest: keep the filename as provided; controller response will use <uuid>.pdf as canonical.
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`);
+    const id = uuidv4();
+    // make this available to the controller
+    req.generatedUuid = id;
+    cb(null, `${id}.pdf`);
   }
 });
 
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    if (!file.originalname.toLowerCase().endsWith(".pdf")) return cb(new Error("Only PDF allowed"));
+    const nameOk = file.originalname?.toLowerCase().endsWith(".pdf");
+    const typeOk = (file.mimetype || "").toLowerCase() === "application/pdf";
+    if (!nameOk && !typeOk) return cb(new Error("Only PDF allowed"));
     cb(null, true);
   },
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB
