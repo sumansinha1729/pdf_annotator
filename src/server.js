@@ -18,6 +18,7 @@ fs.mkdirSync(uploadDir, { recursive: true });
 // Middleware
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*", credentials: true }));
 app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));     
 if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 
 // Static serve PDFs
